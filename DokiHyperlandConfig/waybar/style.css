@@ -1,0 +1,214 @@
+
+window#waybar {
+    /* background-color: rgba(11, 18, 21, 0.784); */
+     background-color: rgba(255, 255, 255, 0.122);
+    border: 2px solid rgba(255, 255, 255, 0.222);    
+    border-radius:10px;
+    /* color: #fff6f6; */
+    color: #ffffff;
+    font-family: "SF-Pro-Text-Bold", monospace;
+    /* font-size: 15px; */
+    font-size: 15px;
+    font-weight: bold;
+}
+
+*{
+    /* border:  1px solid red; */
+}
+/* General styling */
+
+#workspaces, #clock, #battery, #language, #cpu, #memory, #disk, #backlight, #wireplumber, #network, #custom-playerctl, #custom-hyprpicker, #custom-randwall, #tray, #bluetooth {
+    /* background-color: #0b1215; */
+    /* border-radius: 12px; */
+    padding: 5px;
+    margin: 4px 0 4px 0;
+    /* border: 2px solid #fa1955; */
+    /* font-size: 13px; */
+}
+
+
+
+/* Positioning, shaping */
+
+#wireplumber, #cpu, #language, #custom-playerctl {
+    margin-left: 2px;
+    margin-right: 1px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    /* font-family: "SF-Pro-Text-Bold", monospace; */
+}
+
+#memory, #custom-hyprpicker {
+    margin-left: 1px;
+    margin-right: 1px;
+    border-radius: 0;
+}
+
+#backlight, #battery, #clock, #custom-randwall {
+    margin-right: 5px;
+    margin-left: 1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#network {
+    /* color: #fff6f6; */
+    margin-left: 5px;
+    font-size: 16px;
+    /* margin-right: 5px; */
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#bluetooth {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    font-size: 20px;
+}
+
+#tray {
+    margin-left: 10px;
+}
+
+/* Colors */
+
+#workspaces button {
+    padding: 0px 6px;
+    border-radius: 8px;
+    color: #fff6f6;
+    margin: 2px 0 2px 0;
+}
+
+#wireplumber, #backlight {
+    /* color: #fff6f6; */
+}
+
+#cpu, #memory, #battery {
+    /* color: #fff6f6; */
+}
+
+#language, #clock {
+    /* color: #fff6f6; */
+}
+
+#language {
+    min-width: 50px;
+    font-size: 20px;
+    /* border-radius: 5px; */
+    margin-right: 2px;
+    background-color: rgba(255, 255, 255, 0.222); 
+    /* border-left: 2px solid rgba(255, 255, 255, 1.222);
+    border-right: 2px solid rgba(255, 255, 255, 1.222); */
+}
+
+#tray menu {
+    background-color: rgba(11, 18, 21, 1);
+    border-radius: 15px;
+    /* margin-top:10px; */
+    color: #fff6f6;
+    font-size: 20px;
+    /* border-radius: 4px; */
+}
+
+#mpris {
+      min-width: 50px;
+}
+
+/* States */
+
+#workspaces {
+	margin-left: 0px;
+}
+
+#workspaces button.active {
+    color: #0a0a21;
+    background-color: #fff6f6;
+    border-radius:5px;
+}
+
+#workspaces button:hover {
+    /* background-color: #1d1919; */
+    /* border: 2px solid #fff6f6; */
+    border-radius: 5px;
+    color: #0a0a21;
+}
+
+#battery.charging {
+    color: #c5ff74;
+}
+
+#battery.warning:not(.charging) {
+    color: #fa1955;
+}
+
+#wireplumber.muted {
+    color: #a0a0a0;
+}
+
+/* Indents & Sizes correction */
+
+#workspaces {
+    padding: 0 5px 0 5px;
+}
+
+#clock {
+    margin-right: 5px;
+    /* border:2px solid #ffffff; */
+    /* background-color: #fff6f6; */
+    /* color:#ffffff; */
+    /* border-radius:5px; */
+    font-size: 15px;
+    font-weight: bolder;
+}
+
+
+#battery {
+    padding-right: 20px;
+}
+
+#network {
+    padding-right: 12px;
+}
+
+#custom-randwall {
+    padding-right: 12px;
+}
+
+#custom-playerctl {
+    padding-left: 12px;
+}
+
+tooltip {
+    background-color: rgb(11, 18, 21); 
+    border-radius: 5px;
+    border: 2px solid #fff6f6;
+    color: #fff6f6;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px; 
+}
+
+window#waybar {
+    /* background: rgba(30, 30, 30, 0.1); */
+    transition: background 0.3s ease-in-out;
+}
+
+window#waybar.active {
+    background: rgba(30, 30, 30, 1.0);
+}
+
+#taskbar button {
+    font-size: 2px; 
+    padding: 5px 5px 0px 5px;
+}
+
+#taskbar button.active {
+    /* background-color: #4c566a; */
+    border-bottom: 3px solid#fa1955;
+    padding: 5px 13px 5px 13px;
+    /* border-radius: 5px; */
+}
+
+#custom-logoOS{
+font-size: 25px;
+}

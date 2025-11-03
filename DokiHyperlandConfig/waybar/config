@@ -1,0 +1,173 @@
+{
+    "position": "top",
+    "layer": "top",
+  
+    "height": 30,
+    // "width":1700,
+    //  "margin":5,
+     "margin-top":10,
+     "margin-bottom":5,
+     "margin-left":5,
+     "margin-right":5,
+
+    "modules-left": ["custom/logoOS", "hyprland/workspaces", "tray", "memory",  "custom/playerctl", "custom/hyprpicker", "custom/randwall", "custom/warp","custom/active_window"],
+    "modules-center": [ "wlr/taskbar", "cpu" ],
+    "modules-right": ["bluetooth", "network", "wireplumber", "backlight", "battery", "hyprland/language",  "clock"],
+
+    // Modules configuration  "cpu" "memory",wlr/taskbar "custom/minecraft",
+
+    "clock": {
+      "format": " {:%H:%M | %d/%m}",
+      "tooltip": "true",
+      "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
+      "format-alt": " {:%d/%m}"
+	},
+
+    "wlr/taskbar": {
+        "format": "{icon}",   
+        "on-click": "activate",
+        "icon-size": 25,
+        "tooltip": false,
+    },
+
+"custom/minecraft":{
+  "format": "|  |",
+  "on-click": "flatpak run io.mrarm.mcpelauncher",
+  "interval": 5
+},
+
+"custom/logoOS":{
+  "format": "  ",
+ "on-click": "wofi", //kitty -e fastfetch   
+  "interval": 5
+},
+
+
+  "hyprland/workspaces": {
+      "on-scroll-up": "hyprctl dispatch workspace -1",
+      "on-scroll-down": "hyprctl dispatch workspace m+1",
+      "format": "{name}",
+	  "on-click": "activate"
+  },
+
+  /* "custom/playerctl": {
+    "format": "{icon}",
+    "return-type": "json",
+    "max-length": 64,
+    "exec": "playerctl -a metadata --format '{\"text\": \"{{artist}} - {{markup_escape(title)}}\", \"tooltip\": \"{{playerName}}\", \"alt\": \"{{status}}\"}' -F",
+    "on-click": "playerctl play-pause",
+    "on-scroll-up": "playerctl previous",
+    "on-scroll-down": "playerctl next",
+    "format-icons": {
+      "Playing": "■",
+      "Paused": "▶"
+    }
+  }, */
+
+  "battery": {
+  "states": {
+    "warning": 19,
+    "critical": 10
+  },
+    "tooltip": false,
+    "format": "| {capacity}% {icon}",
+    "format-plugged": "{capacity}% ",
+    "format-icons": ["", "", "", "", ""]
+    // "icon-font": "SF-Pro-Text-Bold"
+  },
+
+  "memory": {
+    "format": "| {}% 󰻠",
+    "format-alt": "{used}/{total} GiB 󰻠",
+    "interval": 5
+  },
+
+  "cpu": {
+    "format": "{usage}% 󰍛",
+    "format-alt": "{avg_frequency} GHz 󰍛",
+    "interval": 5,
+    "on-click-right": "wezterm -e btop"
+  },
+
+  // "disk": {
+  //   "format": "{}% 󰋊",
+  //   "format-alt": "{used} / {total} GiB 󰋊",
+  //   "interval": 5,
+  //   "path": "/"
+  // },
+
+"network": {
+    "format-wifi": "`", 
+    "format-ethernet": "🖧",  
+    "format-linked": "(No IP)",
+    "format-disconnected": "󰤭",
+    // "format-alt": " {ifname}: {ipaddr}/{cidr}",  wezterm
+    "tooltip-format": "{essid}",
+    // "on-click-right": "nmcli device wifi rescan",
+    "on-click": "hyprctl dispatch exec '[float;size 600 500] kitty -e nmtui'"
+    
+
+},
+
+"bluetooth": {
+    "format-connected": "",
+    "format-disabled": "",
+    "format-off": "Off ",
+    "format-on": "Idle ",
+    "tooltip-format": "{device_alias}",
+    // "on-click-right": "wezterm -e bluetuith"
+    "on-click": "hyprctl dispatch exec '[float;size 600 500] wezterm -e bluetuith'" 
+},
+
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  },
+
+  "backlight": {
+    "min-brightness": 1,
+    "format": "| {percent}% {icon}",
+    "format-icons": ["", "", "", "", "", "", "", "", ""],
+    "scroll-step": 5
+  },
+
+  "wireplumber": {
+  "format": "{volume}% {icon}",
+  "format-muted": "󰝟",
+  "format-icons": ["", "", "󰕾"],
+    "on-click": "pulsemixer --toggle-mute",
+    "on-click-right": "wezterm -e pulsemixer",
+    "scroll-step": 1
+  },
+  
+
+  // "custom/randwall": {
+  //   "format": "󰏘",
+  //   "on-click": "bash $HOME/.config/waybar/scripts/randomwallpaper.sh"
+  // },
+
+  // "custom/wf-recorder": {
+  //   "format": "{}",
+  //   "interval": "once",
+  //   "exec": "echo ''",
+  //   "tooltip": "false",
+  //   "exec-if": "pgrep 'wf-recorder'",
+  //   "on-click": "exec ./scripts/wlrecord.sh",
+  //   "signal": 8
+  // },
+
+  /* "custom/hyprpicker": {
+    "format": "󰈋",
+    "on-click": "hyprpicker -a -f hex",
+    "on-click-right": "hyprpicker -a -f rgb"
+  }, */
+
+  "hyprland/language": {
+    "format": "{}",
+    "format-en": "🇺🇸",
+    "format-uk": "🇺🇦",
+    "on-click": "hyprctl switchxkblayout at-translated-set-2-keyboard next",
+    "on-click-right": "hyprctl switchxkblayout at-translated-set-2-keyboard prev",
+    "keyboard-name": "at-translated-set-2-keyboard"
+  }
+}

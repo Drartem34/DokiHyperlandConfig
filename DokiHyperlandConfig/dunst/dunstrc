@@ -1,0 +1,47 @@
+[global]
+    # geometry = "100x50-10-10"  
+    width = (100, 400)
+    height = (70, 100)
+    origin = "bottom-center"
+    corner_radius = 15
+    frame_width = 0
+    separator_height = 0
+    padding = 16
+    font = "SF-Pro-Text-Bold 10"
+    timeout = 1
+    icon_position = left
+    icon_size = 40
+    max_icon_size = 80
+    notification_limit = 10
+    progress_bar = true
+    progress_bar_height = 10
+    progress_bar_frame_width = 1
+    progress_bar_min_width = 150
+    progress_bar_max_width = 300
+    alignment = center
+    vertical_alignment = center
+    ellipsize = middle
+    ignore_newline = yes
+    stack_duplicates = true
+    hide_duplicate_count = false
+    show_indicators = no
+    sticky_history = yes
+    history_length = 20
+    sort = yes
+
+
+
+[urgency_low]
+    background = "#0b1215"
+    foreground = "#cdd6f4"
+    frame_color = "#0b1215"
+
+[urgency_normal]
+    background = "#0b1215"
+    foreground = "#cdd6f4"
+    frame_color = "#0b1215"
+
+[urgency_critical]
+    background = "#0b1215"
+    foreground = "#f38ba8"
+    frame_color = "#0b1215"

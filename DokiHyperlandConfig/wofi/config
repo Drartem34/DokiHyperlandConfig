@@ -1,0 +1,9 @@
+mode=drun
+allow_images=true
+normal_window=false
+image_size=24
+term=wezterm
+width=500
+height=500
+xray=false 
+

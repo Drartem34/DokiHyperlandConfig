@@ -1,0 +1,68 @@
+#!/bin/bash
+
+LOG=~/frozen_procs.log
+declare -A last_seen
+declare -A frozen
+
+INTERVAL=5
+TIMEOUT=120  # 2 хвилини неактивності
+
+WHITELIST="(vesktop|wezterm|spotify)"
+
+echo "⏳ Відстеження активного вікна..."
+
+while true; do
+  active_info=$(hyprctl activewindow -j 2>/dev/null)
+  active_pid=$(echo "$active_info" | jq '.pid')
+  active_address=$(echo "$active_info" | jq -r '.address')
+
+  if [[ -z "$active_pid" || "$active_pid" == "null" ]]; then
+    echo "[!] Не вдалося отримати активне вікно. Пропуск..."
+    sleep $INTERVAL
+    continue
+  fi
+
+  echo "[✔] Активне вікно: PID $active_pid"
+
+  now=$(date +%s)
+
+  # Оновити час активності
+  last_seen[$active_pid]=$now
+
+  # Розморозити, якщо стало активним
+  if [[ "${frozen[$active_pid]}" == "1" ]]; then
+    kill -CONT "$active_pid" 2>/dev/null
+    if [[ $? -eq 0 ]]; then
+      echo "🟢 Автоматично розморожено PID $active_pid (стало активним)"
+      unset frozen[$active_pid]
+      sed -i "/^$active_pid\$/d" "$LOG" 2>/dev/null
+    fi
+  fi
+
+  # Перевірити всі видимі вікна, але не чіпати фонові
+  for client in $(hyprctl clients -j | jq -c '.[]'); do
+    win_address=$(echo "$client" | jq -r '.address')
+    pid=$(echo "$client" | jq '.pid')
+    cmd=$(ps -p $pid -o comm= 2>/dev/null)
+
+    [[ -z "$pid" || "$pid" == "$active_pid" ]] && continue
+    [[ "$cmd" =~ $WHITELIST ]] && continue
+
+    seen=${last_seen[$pid]}
+    [[ -z "$seen" ]] && last_seen[$pid]=$now && continue
+
+    elapsed=$((now - seen))
+
+    if (( elapsed >= TIMEOUT )) && [[ "${frozen[$pid]}" != "1" ]]; then
+      kill -STOP "$pid" 2>/dev/null
+      if [[ $? -eq 0 ]]; then
+        frozen[$pid]=1
+        echo "🥶 Автоматично заморожено PID $pid ($elapsed сек неактивності)"
+        echo "$pid" >> "$LOG"
+      fi
+    fi
+  done
+
+  sleep $INTERVAL
+done
+

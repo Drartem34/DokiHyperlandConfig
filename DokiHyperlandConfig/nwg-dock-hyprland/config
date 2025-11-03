@@ -1,0 +1,10 @@
+{
+    "icon_size": 10,
+    "layer": "top",
+    "position": "top",
+    "exclusive": false,
+    "persistent": true,
+    "blur": true,
+    "xray": false,
+    "margin_bottom": 20
+}
