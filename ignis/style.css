@@ -4,7 +4,7 @@
 
 /* Фон */
 .main-bg {
-    background-color: #11111b;
+    background-color: #11111bad;
     border-left: 1px solid #313244;
     border-radius: 20px;
     padding: 20px;
@@ -92,3 +92,51 @@ scale slider { background-color: #cdd6f4; border-radius: 50%; min-width: 18px; m
 .notif-appname { font-size: 11px; color: #a6adc8; font-weight: bold; }
 .notif-summary { font-weight: 800; font-size: 13px; color: #cdd6f4; margin-bottom: 4px; }
 .notif-body { font-size: 12px; color: #bac2de; }
+
+/* Основний контейнер доку */
+.dock-wrapper {
+    margin-bottom: 10px;
+    background-color: rgba(17, 17, 27, 0.85); /* Темний напівпрозорий фон */
+    border: 1px solid #313244;
+    border-radius: 20px;
+    padding: 8px 2px ;
+}
+
+/* Сама кнопка програми (Box) - ПРОЗОРА */
+.dock-item {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0 4px;
+    transition: 0.2s;
+}
+
+.dock-item.active {
+/* border: 2px solid #a6adc8; */
+box-shadow:
+0 0 0 3px #cdd6f4;
+}
+
+/* Ефект при наведенні (легке підсвічування) */
+.dock-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Іконка */
+.dock-icon {
+    border-radius: 10px;
+}
+
+/* Системний монітор */
+.sys-monitor {
+    border-left: 1px solid #313244;
+    padding-left: 12px;
+}
+
+.sys-text {
+    font-size: 15px;
+    font-weight: 800;
+    color: #89b4fa; 
+    margin-right: 10px;
+}

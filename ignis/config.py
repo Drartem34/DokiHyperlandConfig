@@ -1,7 +1,10 @@
+import sys
 import os
 import json
 import subprocess
 import gi
+sys.path.append(os.path.expanduser("~/.config/ignis"))
+import dock
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk
 from ignis import widgets, utils
@@ -450,3 +453,5 @@ my_win = create_control_center()
 
 # Реєструємо його в додатку, вказуючи і об'єкт, і ім'я
 app.add_window(window=my_win, window_name="control_center")
+
+dock.create_dock()
