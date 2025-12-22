@@ -3,6 +3,7 @@ import os
 import json
 import subprocess
 import gi
+import switcher
 sys.path.append(os.path.expanduser("~/.config/ignis"))
 import dock
 gi.require_version('Gtk', '4.0')
@@ -355,6 +356,8 @@ def MicrophoneControl():
     scale.connect("change-value", lambda x, y: on_change(x)); utils.Poll(1000, lambda x: update(scale)); update(scale)
     return widgets.Box(css_classes=["block", "dark", "wide"], spacing=10, child=[widgets.Label(label="", css_classes=["b-icon"]), scale])
 
+    
+
 # --- СПОВІЩЕННЯ ---
 HIDDEN_NOTIF_IDS = set()
 def NotificationItem(appname, summary, body, icon_data, item_id, on_dismiss):
@@ -453,5 +456,7 @@ my_win = create_control_center()
 
 # Реєструємо його в додатку, вказуючи і об'єкт, і ім'я
 app.add_window(window=my_win, window_name="control_center")
+
+switcher.setup(app)
 
 dock.create_dock()
