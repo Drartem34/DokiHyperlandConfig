@@ -114,8 +114,9 @@ scale slider { background-color: #cdd6f4; border-radius: 50%; min-width: 18px; m
 
 .dock-item.active {
 /* border: 2px solid #a6adc8; */
-box-shadow:
-0 0 0 3px #cdd6f4;
+/* box-shadow:0 0 0 3px #cdd6f4; */
+background-color: #cdd6f4;
+
 }
 
 /* Ефект при наведенні (легке підсвічування) */
@@ -139,4 +140,57 @@ box-shadow:
     font-weight: 800;
     color: #89b4fa; 
     margin-right: 10px;
+}
+
+
+
+
+
+.switcher-bg {
+    background-color: rgba(0,0,0,0);
+}
+.switcher-container {
+    background-color: #1e1e2e57;
+    border: 2px solid #313244;
+    border-radius: 20px;
+    padding: 30px;
+}
+.switcher-item {
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* Цей клас додається Python-ом до активного елемента */
+.selected {
+    background-color: rgba(137, 180, 250, 0.3); /* Синій фон */
+    border: 2px solid #89b4fa;                  /* Синя рамка */
+}
+
+.switcher-label {
+    color: white; font-size: 12px; font-weight: bold;
+}
+
+
+.preview-image {
+    min-width: 240px;   /* Ширина прев'ю */
+    min-height: 135px;  /* Висота прев'ю (16:9) */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: #313244;
+}
+
+.switcher-item {
+    padding: 10px;
+    border-radius: 12px;
+    background-color: rgba(255,255,255,0.05);
+}
+
+.selected {
+    background-color: rgba(137, 180, 250, 0.2);
+    border: 2px solid #89b4fa;
 }
