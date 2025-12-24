@@ -7,6 +7,15 @@ from gi.repository import Gtk, Gdk
 
 apps_service = ApplicationsService.get_default()
 
+# --- СПИСОК ПРОГРАМ, ПРИ ЯКИХ ДОК НЕ ХОВАЄТЬСЯ ---
+# Вписуй сюди 'class' вікна (можна частину назви)
+ALWAYS_VISIBLE_APPS = [
+    "nautilus",
+    "kitty",
+    "wezterm",
+    "ignis" 
+]
+
 # --- HELPER FUNCTIONS ---
 
 def get_hyprland_clients():
@@ -16,13 +25,13 @@ def get_hyprland_clients():
     except Exception:
         return []
 
-def get_active_window_address():
+def get_active_window_info():
+    """Отримує інформацію про активне вікно (адреса і клас)"""
     try:
         output = subprocess.check_output(["hyprctl", "activewindow", "-j"], text=True)
-        data = json.loads(output)
-        return data.get("address", "")
+        return json.loads(output)
     except Exception:
-        return ""
+        return {}
 
 def get_active_workspace_id():
     try:
@@ -46,9 +55,8 @@ def DockAppItem(app, window_address, is_active):
 
     css_classes = ["dock-item"]
     
-    # Центрування (8px) та Стрибок (20px)
     base_margin = 8 
-    jump_height = 12 
+    jump_height = 5
     
     if is_active:
         mb_val = base_margin + jump_height 
@@ -93,7 +101,9 @@ def DockWidget():
             child = content.get_first_child()
         
         windows = get_hyprland_clients()
-        active_addr = get_active_window_address()
+        active_info = get_active_window_info()
+        active_addr = active_info.get("address", "")
+        
         windows.sort(key=lambda x: x.get("workspace", {}).get("id", 0))
 
         unique_apps = {} 
@@ -133,7 +143,7 @@ def DockWidget():
     update_dock()
     
     return widgets.Box(child=[content], css_classes=["dock-main"])
-
+    
 def WorkspaceWidget():
     label = widgets.Label(label="  1", css_classes=["sys-text"])
     
@@ -174,7 +184,7 @@ def SysMonitorWidget():
         child=[cpu_label, ram_label]
     )
 
-# --- АВТО-ПРИХОВУВАННЯ (MOUSE & WINDOW TRACKER) ---
+# --- АВТО-ПРИХОВУВАННЯ З БІЛИМ СПИСКОМ ---
 
 cached_monitor_height = 0
 cached_monitor_width = 0
@@ -193,15 +203,9 @@ def get_monitor_size():
     return cached_monitor_width, cached_monitor_height
 
 def setup_autohide(revealer):
-    """
-    Логіка:
-    1. Якщо миша знизу -> ПОКАЗАТИ.
-    2. Якщо є активне вікно -> СХОВАТИ (якщо миша не знизу).
-    3. Якщо немає активного вікна (робочий стіл) -> ПОКАЗАТИ.
-    """
     def check_state(*args):
         try:
-            # 1. Перевіряємо мишу
+            # 1. Отримуємо позицію миші
             pos_raw = subprocess.check_output(["hyprctl", "cursorpos"], text=True).strip()
             x, y = map(int, pos_raw.split(","))
             width, height = get_monitor_size()
@@ -211,30 +215,37 @@ def setup_autohide(revealer):
             center_start = width * 0.3
             center_end = width * 0.7
 
-            # Чи миша в зоні активації?
             mouse_is_bottom = False
             if revealer.get_reveal_child():
-                # Якщо вже відкрито - тримаємо, поки миша над доком
                 if y > (height - dock_visible_area): mouse_is_bottom = True
             else:
-                # Якщо закрито - відкриваємо тільки знизу по центру
                 if y > (height - trigger_height) and (center_start < x < center_end):
                     mouse_is_bottom = True
 
-            # 2. Перевіряємо активне вікно
-            # Якщо адреса вікна не пуста ("") -> значить є активне вікно
-            has_active_window = bool(get_active_window_address())
+            # 2. Отримуємо активне вікно
+            active_info = get_active_window_info()
+            has_active_window = bool(active_info.get("address", ""))
+            active_class = active_info.get("class", "").lower()
 
+            # 3. Перевіряємо білий список
+            is_ignored_app = False
+            if has_active_window:
+                for app_name in ALWAYS_VISIBLE_APPS:
+                    if app_name.lower() in active_class:
+                        is_ignored_app = True
+                        break
+
+            # 4. Логіка відображення
             should_show = False
             
             if mouse_is_bottom:
-                should_show = True
+                should_show = True # Миша внизу - завжди показуємо
             elif not has_active_window:
-                # Якщо немає активного вікна (ми на робочому столі) -> ПОКАЗАТИ
-                should_show = True
+                should_show = True # Робочий стіл - показуємо
+            elif is_ignored_app:
+                should_show = True # Програма зі списку - показуємо
             else:
-                # Є вікно і миша не знизу -> СХОВАТИ
-                should_show = False
+                should_show = False # Звичайна програма - ховаємо
             
             revealer.set_reveal_child(should_show)
             
