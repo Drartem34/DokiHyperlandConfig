@@ -55,8 +55,8 @@ def DockAppItem(app, window_address, is_active):
 
     css_classes = ["dock-item"]
     
-    base_margin = 8 
-    jump_height = 5
+    base_margin = 0 
+    jump_height = 4
     
     if is_active:
         mb_val = base_margin + jump_height 
@@ -92,7 +92,7 @@ def DockAppItem(app, window_address, is_active):
 def DockWidget():
     content = widgets.Box(spacing=0, css_classes=["dock-content"])
     content.set_valign("end") 
-    content.set_size_request(-1, 64) 
+    content.set_size_request(-1, 40) 
 
     def update_dock(*args):
         child = content.get_first_child()
