@@ -2,28 +2,42 @@ import sys
 import os
 import json
 import subprocess
+import asyncio
 import gi
+import urllib.parse
+
+# --- ШЛЯХИ ---
 sys.path.append(os.path.expanduser("~/.config/ignis"))
+
+# --- ІМПОРТИ ---
+import wallpapers
+import switcher
 import dock
+
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gdk
 from ignis import widgets, utils
 from ignis.app import IgnisApp
 from ignis.services.audio import AudioService
 from ignis.services.mpris import MprisService
+from ignis.services.backlight import BacklightService
 
 app = IgnisApp.get_initialized()
 audio = AudioService.get_default()
 mpris = MprisService.get_default()
+backlight = BacklightService.get_default()
 
 app.apply_css(os.path.expanduser("~/.config/ignis/style.css"))
 
-# --- HELPER FUNCTIONS ---
+# --- ДОПОМІЖНІ ФУНКЦІЇ ---
 def run_cmd(cmd):
     try:
         return subprocess.check_output(cmd, shell=True).decode("utf-8").strip()
     except:
         return ""
+
+def run_async(cmd):
+    subprocess.Popen(cmd, shell=True)
 
 def get_wifi_status():
     ssid = run_cmd("nmcli -t -f ACTIVE,SSID dev wifi | grep '^yes' | cut -d: -f2")
@@ -35,108 +49,118 @@ def get_bt_status():
     return bool(out)
 
 # --- CUSTOM CLICKABLE BOX (ВИПРАВЛЕНО ЦЕНТРУВАННЯ) ---
-def ClickableBox(child, on_click, css_classes=[], spacing=0, centered=False):
-    # Якщо потрібно центрувати вміст (для кнопок)
+def ClickableBox(child, on_click, css_classes=[], spacing=0, centered=False, **kwargs):
     if centered and child:
         child.set_halign("center")
         child.set_valign("center")
+        # ПОВЕРНУВ ЦІ РЯДКИ: вони змушують вміст (іконку/текст) 
+        # зайняти весь простір кнопки і стати рівно по центру
         child.set_hexpand(True)
         child.set_vexpand(True)
+    
+    classes = css_classes + ["unset", "clickable-box"]
 
     box = widgets.Box(
         child=[child] if child else [],
-        css_classes=css_classes,
+        css_classes=classes,
         spacing=spacing,
+        **kwargs
     )
     
     gesture = Gtk.GestureClick()
     gesture.connect("released", lambda x, n, a, b: on_click(box))
     box.add_controller(gesture)
     
-    def on_hover(w, event):
-        try: w.set_cursor(Gdk.Cursor.new_from_name("pointer", None))
+    def on_hover(controller, x, y):
+        try: box.set_cursor(Gdk.Cursor.new_from_name("pointer", None))
+        except: pass
+    
+    def on_unhover(controller):
+        try: box.set_cursor(None)
         except: pass
     
     motion = Gtk.EventControllerMotion()
     motion.connect("enter", on_hover)
+    motion.connect("leave", on_unhover)
     box.add_controller(motion)
 
     return box
 
-# --- БЛОК ---
-def Block(child, is_active=False, is_wide=False, css_class=None, on_click=None):
-    styles = ["block"]
-    styles.append("active" if is_active else "dark")
-    styles.append("wide" if is_wide else "std")
-    if css_class: styles.append(css_class)
-
-    box = widgets.Box(
-        child=[child] if child else [],
-        spacing=10,
-        halign="start" if is_wide else "center",
-        valign="center",
-        hexpand=True,
-        css_classes=styles,
-    )
-
-    if on_click:
-        gesture = Gtk.GestureClick()
-        gesture.connect("released", lambda x, n, a, b: on_click(box))
-        box.add_controller(gesture)
-        motion = Gtk.EventControllerMotion()
-        motion.connect("enter", lambda w, e: w.set_cursor(Gdk.Cursor.new_from_name("pointer", None)))
-        box.add_controller(motion)
-
-    return box
-
-# --- LIST ITEM ---
-def ListItem(icon, label, is_connected, on_click):
-    # Тут centered=False, бо текст має бути зліва
-    return ClickableBox(
-        child=widgets.Box(
-            spacing=10,
-            child=[
-                widgets.Label(label=icon, css_classes=["list-icon"]),
-                widgets.Label(label=label, css_classes=["list-label"], ellipsize="end", halign="start", hexpand=True),
-                widgets.Label(label="✔" if is_connected else "", css_classes=["list-status"])
-            ]
-        ),
-        on_click=lambda x: on_click(),
-        css_classes=["list-item", "list-item-active" if is_connected else "list-item-normal"]
-    )
-
-# --- WI-FI ---
+# --- WI-FI WIDGET (WhiteSur Icons) ---
 def WifiWidget():
     list_revealer = widgets.Revealer(transition_type="slide_down")
     list_box = widgets.Box(vertical=True, spacing=5, css_classes=["list-container"])
     
-    icon_label = widgets.Label(label="", css_classes=["b-icon"])
+    icon_widget = widgets.Icon(image="network-wireless-symbolic", pixel_size=24, css_classes=["b-icon"])
     status_label = widgets.Label(label="Checking...", halign="start", css_classes=["card-status"], ellipsize="end")
+
+    def create_wifi_row(ssid, is_active, strength):
+        entry = widgets.Entry(placeholder_text="Password...", css_classes=["wifi-password-entry"], hexpand=True)
+        entry.set_visibility(False)
+        
+        btn_label = widgets.Label(label="Connect", style="font-weight: bold; color: #1e1e2e;")
+        btn_connect = ClickableBox(
+            child=btn_label,
+            css_classes=["wifi-connect-btn"],
+            on_click=lambda x: run_async(f"nmcli dev wifi connect '{ssid}' password '{entry.get_text()}'"),
+            centered=True
+        )
+        
+        password_area = widgets.Box(spacing=5, child=[entry, btn_connect])
+        pass_revealer = widgets.Revealer(transition_type="slide_down", child=password_area, reveal_child=False)
+
+        def on_click_network(x):
+            if is_active:
+                run_async(f"nmcli connection down id '{ssid}'")
+            else:
+                try:
+                    saved = run_cmd(f"nmcli -t -f NAME connection show | grep '^{ssid}$'")
+                    if saved:
+                        run_async(f"nmcli connection up id '{ssid}'")
+                    else:
+                        pass_revealer.set_reveal_child(not pass_revealer.get_reveal_child())
+                except:
+                    pass_revealer.set_reveal_child(not pass_revealer.get_reveal_child())
+
+        row_content = widgets.Box(spacing=10, child=[
+            widgets.Icon(image="network-wireless-symbolic", pixel_size=20, css_classes=["list-icon"]),
+            widgets.Label(label=f"{ssid} ({strength}%)", css_classes=["list-label"], ellipsize="end", halign="start", hexpand=True),
+            widgets.Icon(image="object-select-symbolic" if is_active else "", pixel_size=16, css_classes=["list-status"])
+        ])
+
+        item_box = widgets.Box(vertical=True, css_classes=["list-item"], child=[
+            ClickableBox(child=row_content, on_click=on_click_network, hexpand=True),
+            pass_revealer
+        ])
+        if is_active: item_box.add_css_class("list-item-active")
+        return item_box
 
     def refresh_wifi_list():
         child = list_box.get_first_child()
         while child: list_box.remove(child); child = list_box.get_first_child()
         list_box.append(widgets.Label(label="Scanning...", css_classes=["b-subtext"]))
-        try:
-            os.system("nmcli dev wifi rescan") 
-            raw = run_cmd("nmcli -t -f SSID,IN-USE,SIGNAL dev wifi list")
-            child = list_box.get_first_child()
-            while child: list_box.remove(child); child = list_box.get_first_child()
-            
-            lines = raw.split('\n'); unique_ssids = set(); count = 0
-            for line in lines:
-                if not line: continue
-                parts = line.split(':')
-                if len(parts) < 2: continue
-                ssid = parts[0]; is_active = parts[1] == "yes"
-                if not ssid or ssid in unique_ssids: continue
-                unique_ssids.add(ssid)
-                connect_cmd = f"nmcli dev wifi connect '{ssid}'"
-                list_box.append(ListItem("", ssid, is_active, lambda c=connect_cmd: os.system(c)))
-                count += 1
-                if count > 15: break
-            if count == 0: list_box.append(widgets.Label(label="No networks", css_classes=["b-subtext"]))
-        except: list_box.append(widgets.Label(label="Error", css_classes=["b-subtext"]))
+        
+        def scan_process():
+            try:
+                run_cmd("nmcli dev wifi rescan") 
+                raw = run_cmd("nmcli -t -f SSID,IN-USE,SIGNAL dev wifi list")
+                child = list_box.get_first_child()
+                while child: list_box.remove(child); child = list_box.get_first_child()
+                
+                lines = raw.split('\n'); unique_ssids = set(); count = 0
+                for line in lines:
+                    if not line: continue
+                    parts = line.split(':')
+                    if len(parts) < 3: continue
+                    ssid = parts[0]; is_active = (parts[1] == "yes"); strength = parts[2]
+                    if not ssid or ssid in unique_ssids: continue
+                    unique_ssids.add(ssid)
+                    list_box.append(create_wifi_row(ssid, is_active, strength))
+                    count += 1
+                    if count > 15: break
+                if count == 0: list_box.append(widgets.Label(label="No networks", css_classes=["b-subtext"]))
+            except: list_box.append(widgets.Label(label="Error", css_classes=["b-subtext"]))
+        utils.Timeout(100, scan_process)
 
     def toggle_list(widget):
         is_open = list_revealer.get_reveal_child()
@@ -148,55 +172,125 @@ def WifiWidget():
         if not ssid:
             radio = run_cmd("nmcli radio wifi")
             if radio == "disabled":
-                status_label.set_label("Disabled"); icon_label.set_label("睊"); icon_label.add_css_class("dim-icon"); icon_label.remove_css_class("accent-icon")
+                status_label.set_label("Disabled")
+                icon_widget.set_image("network-wireless-disabled-symbolic")
+                icon_widget.add_css_class("dim-icon")
             else:
-                status_label.set_label("Disconnected"); icon_label.set_label(""); icon_label.add_css_class("dim-icon"); icon_label.remove_css_class("accent-icon")
+                status_label.set_label("Disconnected")
+                icon_widget.set_image("network-wireless-offline-symbolic")
+                icon_widget.add_css_class("dim-icon")
         else:
-            status_label.set_label(ssid); icon_label.set_label(""); icon_label.add_css_class("accent-icon"); icon_label.remove_css_class("dim-icon")
-
+            status_label.set_label(ssid)
+            icon_widget.set_image("network-wireless-connected-symbolic")
+            icon_widget.add_css_class("accent-icon")
+    
     utils.Poll(2000, lambda x: poll_status(None))
 
-    # Кнопка живлення (З ЦЕНТРУВАННЯМ)
     power_btn = ClickableBox(
-        child=widgets.Label(label=""),
+        child=widgets.Icon(image="system-shutdown-symbolic", pixel_size=20), 
         css_classes=["power-btn"],
-        on_click=lambda x: os.system("nmcli radio wifi off" if run_cmd("nmcli radio wifi") == "enabled" else "nmcli radio wifi on"),
-        centered=True # <--- Центрує іконку
-    )
-
-    header_left = ClickableBox(
-        child=widgets.Box(spacing=12, child=[icon_label, widgets.Box(vertical=True, valign="center", child=[widgets.Label(label="Wi-Fi", halign="start", css_classes=["card-title"]), status_label])]),
-        on_click=toggle_list,
-        css_classes=["header-left"]
+        on_click=lambda x: run_async("nmcli radio wifi off" if run_cmd("nmcli radio wifi") == "enabled" else "nmcli radio wifi on"),
+        centered=True
     )
     
+    header_left = ClickableBox(
+        child=widgets.Box(spacing=12, child=[
+            icon_widget, 
+            widgets.Box(vertical=True, valign="center", child=[
+                widgets.Label(label="Wi-Fi", halign="start", css_classes=["card-title"]), 
+                status_label
+            ])
+        ]),
+        on_click=toggle_list, css_classes=["header-left"],
+        hexpand=True
+    )
     header = widgets.Box(spacing=0, child=[header_left, widgets.Box(hexpand=True), power_btn])
     scroll = widgets.Scroll(height_request=250, child=list_box); list_revealer.set_child(scroll)
     return widgets.Box(vertical=True, css_classes=["block", "dark", "wide"], child=[widgets.Box(css_classes=["header-padding"], child=[header]), list_revealer])
 
-# --- BLUETOOTH ---
+# --- BLUETOOTH WIDGET (WhiteSur Icons) ---
+bt_scan_process = None
+
 def BluetoothWidget():
     list_revealer = widgets.Revealer(transition_type="slide_down")
     list_box = widgets.Box(vertical=True, spacing=5, css_classes=["list-container"])
-    icon_label = widgets.Label(label="", css_classes=["b-icon"])
+    
+    icon_widget = widgets.Icon(image="bluetooth-active-symbolic", pixel_size=24, css_classes=["b-icon"])
     status_label = widgets.Label(label="Checking...", halign="start", css_classes=["card-status"])
+    scan_btn_label = widgets.Label(label="Scan")
+
+    def toggle_scan(btn_box):
+        global bt_scan_process
+        if bt_scan_process:
+            run_async("bluetoothctl scan off")
+            bt_scan_process = None
+            scan_btn_label.set_label("Scan")
+            btn_box.remove_css_class("active-scan-btn")
+        else:
+            run_async("bluetoothctl scan on")
+            bt_scan_process = True
+            scan_btn_label.set_label("Stop")
+            btn_box.add_css_class("active-scan-btn")
+            refresh_bt_list()
+
+    def create_bt_row(mac, name, is_connected, is_paired):
+        pair_label = widgets.Label(label="Pair & Connect", style="color: #1e1e2e; font-weight: bold;")
+        pair_btn = ClickableBox(
+            child=pair_label,
+            css_classes=["wifi-connect-btn"],
+            on_click=lambda x: run_async(f"bluetoothctl trust {mac} && bluetoothctl pair {mac} && bluetoothctl connect {mac}"),
+            centered=True
+        )
+        action_revealer = widgets.Revealer(transition_type="slide_down", child=widgets.Box(child=[pair_btn]), reveal_child=False)
+
+        def on_click_device(x):
+            if is_connected:
+                run_async(f"bluetoothctl disconnect {mac}")
+            elif is_paired:
+                run_async(f"bluetoothctl connect {mac}")
+            else:
+                action_revealer.set_reveal_child(not action_revealer.get_reveal_child())
+
+        status_icon_name = "object-select-symbolic" if is_connected else ("network-wired-symbolic" if is_paired else "")
+        
+        row_content = widgets.Box(spacing=10, child=[
+            widgets.Icon(image="bluetooth-symbolic", pixel_size=20, css_classes=["list-icon"]),
+            widgets.Label(label=name if name else mac, css_classes=["list-label"], ellipsize="end", halign="start", hexpand=True),
+            widgets.Icon(image=status_icon_name, pixel_size=16, css_classes=["list-status"])
+        ])
+
+        item_box = widgets.Box(vertical=True, css_classes=["list-item"], child=[
+            ClickableBox(child=row_content, on_click=on_click_device, hexpand=True),
+            action_revealer
+        ])
+        if is_connected: item_box.add_css_class("list-item-active")
+        return item_box
 
     def refresh_bt_list():
+        if not list_revealer.get_reveal_child(): return
         child = list_box.get_first_child()
         while child: list_box.remove(child); child = list_box.get_first_child()
         try:
-            raw = run_cmd("bluetoothctl devices"); lines = raw.split('\n'); count = 0
+            raw = run_cmd("bluetoothctl devices")
+            lines = raw.split('\n'); count = 0
             for line in lines:
                 if not line: continue
                 parts = line.split(' ', 2)
                 if len(parts) < 3: continue
                 mac = parts[1]; name = parts[2]
-                info = run_cmd(f"bluetoothctl info {mac}"); is_connected = "Connected: yes" in info
-                cmd = f"bluetoothctl disconnect {mac}" if is_connected else f"bluetoothctl connect {mac}"
-                list_box.append(ListItem("", name, is_connected, lambda c=cmd: os.system(c)))
+                info = run_cmd(f"bluetoothctl info {mac}")
+                is_connected = "Connected: yes" in info
+                is_paired = "Paired: yes" in info
+                list_box.append(create_bt_row(mac, name, is_connected, is_paired))
                 count += 1
-            if count == 0: list_box.append(widgets.Label(label="No devices", css_classes=["b-subtext"]))
+            if count == 0: 
+                list_box.append(widgets.Label(label="No devices found", css_classes=["b-subtext"]))
+                if not bt_scan_process:
+                    list_box.append(widgets.Label(label="Press Scan to find new", css_classes=["b-subtext"]))
         except: list_box.append(widgets.Label(label="Error", css_classes=["b-subtext"]))
+        
+        if bt_scan_process:
+            utils.Timeout(2000, refresh_bt_list)
 
     def toggle_list(widget):
         is_open = list_revealer.get_reveal_child()
@@ -205,157 +299,167 @@ def BluetoothWidget():
 
     def poll_status(widget):
         is_on = get_bt_status()
-        status_label.set_label("On" if is_on else "Off"); icon_label.set_label("" if is_on else "")
-        if is_on: icon_label.add_css_class("accent-icon"); icon_label.remove_css_class("dim-icon")
-        else: icon_label.add_css_class("dim-icon"); icon_label.remove_css_class("accent-icon")
+        status_label.set_label("On" if is_on else "Off")
+        icon_widget.set_image("bluetooth-active-symbolic" if is_on else "bluetooth-disabled-symbolic")
+        if is_on: icon_widget.add_css_class("accent-icon"); icon_widget.remove_css_class("dim-icon")
+        else: icon_widget.add_css_class("dim-icon"); icon_widget.remove_css_class("accent-icon")
 
     utils.Poll(2000, lambda x: poll_status(None))
 
-    # Кнопка живлення (З ЦЕНТРУВАННЯМ)
+    scan_btn = ClickableBox(
+        child=scan_btn_label, css_classes=["wifi-connect-btn"],
+        on_click=toggle_scan, centered=True
+    )
     power_btn = ClickableBox(
-        child=widgets.Label(label=""),
+        child=widgets.Icon(image="system-shutdown-symbolic", pixel_size=20), 
         css_classes=["power-btn"],
-        on_click=lambda x: os.system("bluetoothctl power off" if get_bt_status() else "bluetoothctl power on"),
-        centered=True # <--- Центрує іконку
+        on_click=lambda x: run_async("bluetoothctl power off" if get_bt_status() else "bluetoothctl power on"),
+        centered=True
     )
-
     header_left = ClickableBox(
-        child=widgets.Box(spacing=12, child=[icon_label, widgets.Box(vertical=True, valign="center", child=[widgets.Label(label="Bluetooth", halign="start", css_classes=["card-title"]), status_label])]),
-        on_click=toggle_list,
-        css_classes=["header-left"]
+        child=widgets.Box(spacing=12, child=[
+            icon_widget, 
+            widgets.Box(vertical=True, valign="center", child=[
+                widgets.Label(label="Bluetooth", halign="start", css_classes=["card-title"]), 
+                status_label
+            ])
+        ]),
+        on_click=toggle_list, css_classes=["header-left"],
+        hexpand=True
     )
-
-    header = widgets.Box(spacing=0, child=[header_left, widgets.Box(hexpand=True), power_btn])
+    header = widgets.Box(spacing=5, child=[header_left, widgets.Box(hexpand=True), scan_btn, power_btn])
     scroll = widgets.Scroll(height_request=250, child=list_box); list_revealer.set_child(scroll)
     return widgets.Box(vertical=True, css_classes=["block", "dark", "wide"], child=[widgets.Box(css_classes=["header-padding"], child=[header]), list_revealer])
 
-# --- МУЗИКА ---
-def MusicWidget():
-    art_label = widgets.Label(label="", css_classes=["music-fallback-icon"])
-    art_box = widgets.Box(child=[art_label], css_classes=["music-art-icon"])
-    
-    title_label = widgets.Label(label="No Media Playing", halign="start", ellipsize="end", css_classes=["music-title"])
-    artist_label = widgets.Label(label="", halign="start", ellipsize="end", css_classes=["music-artist"])
-    play_pause_icon = widgets.Label(label="", css_classes=["player-icon"])
+# --- МЕДІА ВІДЖЕТ (WhiteSur Icons) ---
+def MediaWidget():
+    players_box = widgets.Box(vertical=True, spacing=10)
 
-    def get_priority_player():
-        try:
-            players_raw = run_cmd("playerctl -l")
-            if not players_raw: return None
-            players = players_raw.splitlines()
-            for p in players:
-                status = run_cmd(f"playerctl -p {p} status").strip().lower()
-                if status == "playing": return p
-            return players[0]
-        except: return None
+    def get_art_css(url):
+        if not url: return ""
+        if not url.startswith("http") and not url.startswith("file"):
+            url = "file://" + url
+        return f"background-image: url('{url}'); background-size: cover; background-position: center;"
 
-    def send_cmd(action):
-        target = get_priority_player()
-        if target: os.system(f"playerctl -p {target} {action}")
+    def on_player_added(service, player):
+        player_widget = widgets.Box(
+            vertical=True,
+            css_classes=["music-box"], 
+            child=[
+                widgets.Box(spacing=15, child=[
+                    widgets.Box(
+                        css_classes=["music-art-icon"],
+                        style=player.bind("art_url", get_art_css),
+                        child=[
+                            widgets.Icon(image="folder-music-symbolic", visible=player.bind("art_url", lambda u: not u), pixel_size=32)
+                        ]
+                    ),
+                    widgets.Box(vertical=True, valign="center", hexpand=True, child=[
+                        widgets.Label(
+                            label=player.bind("title"), 
+                            halign="start", ellipsize="end", css_classes=["music-title"]
+                        ),
+                        widgets.Label(
+                            label=player.bind("artist"), 
+                            halign="start", ellipsize="end", css_classes=["music-artist"]
+                        )
+                    ])
+                ]),
+                widgets.Scale(
+                    hexpand=True,
+                    css_classes=["b-slider", "media-scale"],
+                    min=0,
+                    max=player.bind("length"),
+                    value=player.bind("position"),
+                    on_change=lambda x: player.set_position(x.value),
+                    visible=player.bind("length", lambda l: l > 0)
+                ),
+                widgets.Box(height_request=5),
+                widgets.Box(halign="center", spacing=20, child=[
+                    # Іконки керування
+                    ClickableBox(
+                        child=widgets.Icon(image="media-skip-backward-symbolic", pixel_size=24), 
+                        on_click=lambda x: player.previous(), 
+                        css_classes=["control-btn"], centered=True
+                    ),
+                    ClickableBox(
+                        child=widgets.Icon(
+                            image=player.bind("playback_status", lambda s: "media-playback-pause-symbolic" if s == "Playing" else "media-playback-start-symbolic"),
+                            pixel_size=32
+                        ), 
+                        on_click=lambda x: player.play_pause(), 
+                        css_classes=["play-btn"], spacing=0, centered=True
+                    ),
+                    ClickableBox(
+                        child=widgets.Icon(image="media-skip-forward-symbolic", pixel_size=24), 
+                        on_click=lambda x: player.next(), 
+                        css_classes=["control-btn"], centered=True
+                    )
+                ])
+            ]
+        )
+        
+        player.connect("closed", lambda x: players_box.remove(player_widget))
+        players_box.append(player_widget)
 
-    # Кнопки (З ЦЕНТРУВАННЯМ)
-    btn_prev = ClickableBox(
-        child=widgets.Label(label=""), 
-        on_click=lambda x: send_cmd("previous"), 
-        css_classes=["control-btn"],
-        centered=True # <--- Центрує
-    )
-    
-    btn_play = ClickableBox(
-        child=play_pause_icon, 
-        on_click=lambda x: send_cmd("play-pause"), 
-        css_classes=["play-btn"], 
-        spacing=0,
-        centered=True # <--- Центрує
-    )
-    
-    btn_next = ClickableBox(
-        child=widgets.Label(label=""), 
-        on_click=lambda x: send_cmd("next"), 
-        css_classes=["control-btn"],
-        centered=True # <--- Центрує
-    )
-
-    def update_music(widget):
-        try:
-            target = get_priority_player()
-            if not target:
-                title_label.set_label("No Media Playing"); artist_label.set_label("")
-                play_pause_icon.set_label(""); art_box.set_style(""); art_label.set_visible(True)
-                return
-
-            status = run_cmd(f"playerctl -p {target} status").strip().lower()
-            metadata = run_cmd(f"playerctl -p {target} metadata --format '{{{{title}}}};{{{{artist}}}};{{{{mpris:artUrl}}}}'")
-            
-            if metadata:
-                parts = metadata.split(";")
-                if len(parts) >= 3:
-                    title = parts[0] if parts[0] else "Unknown"
-                    artist = parts[1] if parts[1] else "Unknown"
-                    art_url = parts[2]
-
-                    if title_label.label != title: title_label.set_label(title)
-                    if artist_label.label != artist: artist_label.set_label(artist)
-                    
-                    if art_url:
-                        if "file://" in art_url:
-                            path = art_url.replace("file://", "")
-                            art_box.set_style(f"background-image: url('file://{path}'); background-size: cover; background-position: center; padding: 0;")
-                            art_label.set_visible(False)
-                        elif "http" in art_url:
-                            art_box.set_style(f"background-image: url('{art_url}'); background-size: cover; background-position: center; padding: 0;")
-                            art_label.set_visible(False)
-                        else:
-                            art_box.set_style(""); art_label.set_visible(True)
-                    else:
-                        art_box.set_style(""); art_label.set_visible(True)
-
-            if "playing" in status:
-                if play_pause_icon.label != "": play_pause_icon.set_label("")
-            else:
-                if play_pause_icon.label != "": play_pause_icon.set_label("")
-        except: pass
-
-    utils.Poll(1000, lambda x: update_music(None))
-    update_music(None)
+    mpris.connect("player-added", on_player_added)
+    for p in mpris.players:
+        on_player_added(mpris, p)
 
     return widgets.Box(
-        css_classes=["music-box"],
-        vertical=True,
+        vertical=True, 
         child=[
-            widgets.Box(spacing=15, child=[
-                art_box,
-                widgets.Box(vertical=True, valign="center", hexpand=True, child=[title_label, artist_label])
-            ]),
-            widgets.Box(height_request=15),
-            widgets.Box(halign="center", spacing=20, child=[btn_prev, btn_play, btn_next])
+            players_box,
+            widgets.Box(
+                visible=mpris.bind("players", lambda p: len(p) == 0),
+                css_classes=["music-box"],
+                child=[widgets.Label(label="No Media Playing", css_classes=["music-title"], halign="center")]
+            )
         ]
     )
 
-# --- ЗВУК/МІКРО ---
-def VolumeControl():
-    scale = widgets.Scale(min=0, max=100, step=1, hexpand=True, css_classes=["b-slider"])
-    def on_change(widget): os.system(f"pamixer --set-volume {int(widget.value)}")
-    def update(widget):
-        try:
-            vol = run_cmd("pamixer --get-volume")
-            if vol.isdigit() and abs(int(widget.value) - int(vol)) > 1: widget.set_value(int(vol))
-        except: pass
-    scale.connect("change-value", lambda x, y: on_change(x)); utils.Poll(1000, lambda x: update(scale)); update(scale)
-    return widgets.Box(css_classes=["block", "dark", "wide"], spacing=10, child=[widgets.Label(label="", css_classes=["b-icon"]), scale])
+# --- VOLUME WIDGET (WhiteSur Icons) ---
+def VolumeSlider(stream_type):
+    stream = getattr(audio, stream_type)
+    
+    icon_box = ClickableBox(
+        child=widgets.Icon(image=stream.bind("icon_name"), pixel_size=20),
+        css_classes=["b-icon-btn"], 
+        on_click=lambda x: stream.set_is_muted(not stream.is_muted),
+        centered=True
+    )
 
-def MicrophoneControl():
-    scale = widgets.Scale(min=0, max=100, step=1, hexpand=True, css_classes=["b-slider"])
-    def on_change(widget): os.system(f"pamixer --default-source --set-volume {int(widget.value)}")
-    def update(widget):
-        try:
-            vol = run_cmd("pamixer --default-source --get-volume")
-            if vol.isdigit() and abs(int(widget.value) - int(vol)) > 1: widget.set_value(int(vol))
-        except: pass
-    scale.connect("change-value", lambda x, y: on_change(x)); utils.Poll(1000, lambda x: update(scale)); update(scale)
-    return widgets.Box(css_classes=["block", "dark", "wide"], spacing=10, child=[widgets.Label(label="", css_classes=["b-icon"]), scale])
+    scale = widgets.Scale(
+        min=0, max=100, step=1, hexpand=True, 
+        css_classes=["b-slider"],
+        value=stream.bind("volume"),
+        on_change=lambda x: stream.set_volume(x.value)
+    )
 
-# --- СПОВІЩЕННЯ ---
+    return widgets.Box(
+        css_classes=["block", "dark", "wide"], 
+        spacing=10, 
+        child=[icon_box, scale]
+    )
+
+# --- BRIGHTNESS WIDGET (WhiteSur Icons) ---
+def BrightnessSlider():
+    return widgets.Box(
+        visible=backlight.bind("available"),
+        css_classes=["block", "dark", "wide"], 
+        spacing=10, 
+        child=[
+            widgets.Icon(image="display-brightness-symbolic", pixel_size=20, css_classes=["b-icon"]),
+            widgets.Scale(
+                min=0, max=backlight.max_brightness, hexpand=True,
+                css_classes=["b-slider"],
+                value=backlight.bind("brightness"),
+                on_change=lambda x: backlight.set_brightness(x.value)
+            )
+        ]
+    )
+
+# --- СПОВІЩЕННЯ (WhiteSur Icons) ---
 HIDDEN_NOTIF_IDS = set()
 def NotificationItem(appname, summary, body, icon_data, item_id, on_dismiss):
     def get_val(key):
@@ -418,40 +522,53 @@ def NotificationWidget():
             if count == 0: notif_list.append(widgets.Label(label="No notifications", css_classes=["b-subtext"]))
         except: notif_list.append(widgets.Label(label="Error loading", css_classes=["b-subtext"]))
     utils.Poll(5000, lambda x: refresh_notifications()); refresh_notifications()
-    return widgets.Box(vertical=True, css_classes=["dunst-block"], vexpand=True, child=[
-        widgets.Box(child=[widgets.Label(label="Notifications", css_classes=["dunst-header"]), widgets.Box(hexpand=True),
-                           Block(child=widgets.Label(label="Clear"), css_class="clear-all", on_click=lambda x: [os.system("dunstctl close-all"), HIDDEN_NOTIF_IDS.clear(), refresh_notifications()])]),
-        widgets.Box(height_request=10), widgets.Scroll(vexpand=True, child=notif_list)])
-
-# --- РЕЄСТРАЦІЯ ВІКНА (ФІКС ДЛЯ ВАШОЇ ВЕРСІЇ) ---
-def create_control_center():
-    return widgets.Window(
-        name="control_center", 
-        namespace="ignis",
-        anchor=["top", "right", "bottom"],
-        css_classes=["unset-window"],
-        visible=False, 
-        child=widgets.Box(
-            vertical=True, 
-            css_classes=["main-bg"], 
-            child=[
-                widgets.Box(spacing=10, child=[WifiWidget(), BluetoothWidget()]),
-                widgets.Box(height_request=15), 
-                MusicWidget(), 
-                widgets.Box(height_request=15),
-                VolumeControl(), 
-                widgets.Box(height_request=10), 
-                MicrophoneControl(),
-                widgets.Box(height_request=15), 
-                NotificationWidget()
-            ]
-        )
+    
+    # Кнопка очищення з іконкою
+    clear_btn = widgets.Box(
+        child=[
+            widgets.Box(
+                css_classes=["block", "std"], 
+                child=[
+                    ClickableBox(
+                        child=widgets.Icon(image="user-trash-symbolic", pixel_size=18),
+                        on_click=lambda x: [os.system("dunstctl close-all"), HIDDEN_NOTIF_IDS.clear(), refresh_notifications()],
+                        centered=True
+                    )
+                ]
+            )
+        ]
     )
 
-# Створюємо вікно
-my_win = create_control_center()
+    return widgets.Box(vertical=True, css_classes=["dunst-block"], vexpand=True, child=[
+        widgets.Box(child=[widgets.Label(label="Notifications", css_classes=["dunst-header"]), widgets.Box(hexpand=True),
+                           clear_btn]),
+        widgets.Box(height_request=10), widgets.Scroll(vexpand=True, child=notif_list)])
 
-# Реєструємо його в додатку, вказуючи і об'єкт, і ім'я
-app.add_window(window=my_win, window_name="control_center")
+
+# --- WINDOW SETUP ---
+def create_control_center():
+    return widgets.Window(
+        name="control_center", namespace="ignis", anchor=["top", "right", "bottom"], css_classes=["unset-window"], visible=False,
+        child=widgets.Box(vertical=True, css_classes=["main-bg"], child=[
+            widgets.Box(spacing=10, child=[WifiWidget(), BluetoothWidget()]),
+            widgets.Box(height_request=15), 
+            MediaWidget(),
+            widgets.Box(height_request=15), 
+            VolumeSlider("speaker"),
+            widgets.Box(height_request=10), 
+            VolumeSlider("microphone"),
+            widgets.Box(height_request=10),
+            BrightnessSlider(),
+            widgets.Box(height_request=15), 
+            NotificationWidget()
+        ])
+    )
+
+app.add_window(window=create_control_center(), window_name="control_center")
+
+try:
+    switcher.setup(app)
+    wallpapers.setup(app)
+except Exception as e: print(e)
 
 dock.create_dock()
