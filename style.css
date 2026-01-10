@@ -1,0 +1,284 @@
+/* База */
+* { font-family: "JetBrainsMono Nerd Font", sans-serif; outline: none; }
+.unset-window { background-color: transparent; }
+
+/* Фон */
+.main-bg {
+    background-color: #11111bad;
+    border-left: 1px solid #313244;
+    border-radius: 20px;
+    padding: 20px;
+    margin: 10px;
+    min-width: 420px;
+}
+
+/* Блоки */
+.block { border-radius: 14px; transition: 0.2s; }
+.dark { background-color: #1e1e2e; color: #cdd6f4; }
+.dark:hover { background-color: #313244; }
+.dark:active { background-color: #45475a; }
+
+.active { background-color: #cdd6f4; color: #11111b; }
+.active:hover { background-color: #a6adc8; }
+
+.std { padding: 12px 14px; }
+.wide { padding: 14px 16px; }
+
+/* Кнопки Wi-Fi / BT */
+.transparent-btn { background-color: transparent; border: none; padding: 0; margin: 0; box-shadow: none; }
+.header-btn { padding: 12px 14px; border-radius: 14px; }
+.header-btn:hover { background-color: #313244; }
+
+.card-title { font-weight: 800; font-size: 14px; margin-right:100px ;}
+.card-status { font-size: 11px; opacity: 0.7; }
+.b-icon { font-size: 18px; }
+.accent-icon { color: #89b4fa; }
+.dim-icon { color: #585b70; }
+
+.power-btn {
+    background-color: #313244; border-radius: 50%; min-width: 32px; min-height: 32px; padding: 0; margin-left: 5px; color: #cdd6f4;
+}
+.power-btn:hover { background-color: #45475a; }
+.power-btn:active { background-color: #89b4fa; color: #1e1e2e; }
+
+/* Список Wi-Fi/BT */
+.list-container { padding: 10px; background-color: #181825; border-radius: 0 0 14px 14px; border-top: 1px solid #313244; }
+.list-item { background-color: transparent; border-radius: 8px; padding: 8px 12px; border: none; box-shadow: none; transition: 0.2s; color: #cdd6f4; }
+.list-item:hover { background-color: #313244; }
+.list-item-active { background-color: #313244; border: 1px solid #89b4fa; }
+.list-item-normal { color: #cdd6f4; }
+.list-label { font-size: 13px; font-weight: 600; }
+.list-icon { margin-right: 10px; color: #a6adc8; font-size: 14px; }
+.list-status { color: #a6e3a1; font-weight: bold; }
+
+/* Музика */
+.music-box { background-color: #181825; border-radius: 18px; padding: 20px; border: 1px solid #313244; }
+.music-art-icon { background-color: #313244; color: #cba6f7; font-size: 32px; border-radius: 12px; min-width: 60px; min-height: 60px; padding: 14px; }
+.music-title { font-weight: 800; font-size: 15px; color: #cdd6f4; }
+.music-artist { font-size: 12px; color: #a6adc8; }
+
+.control-btn { background-color: transparent; padding: 10px; border-radius: 50%; }
+.control-btn:hover { background-color: #313244; }
+.play-btn { border-radius: 50%; min-width: 48px; min-height: 48px; padding: 0; }
+.play-btn label { font-size: 20px; }
+
+/* Слайдери */
+.b-slider { margin-left: 10px; }
+scale trough { background-color: #313244; border-radius: 10px; min-height: 6px; }
+scale highlight { background-color: #89b4fa; border-radius: 10px; min-height: 6px; }
+scale slider { background-color: #cdd6f4; border-radius: 50%; min-width: 18px; min-height: 18px; margin: -6px 0; box-shadow: none; }
+
+/* --- СПОВІЩЕННЯ --- */
+.dunst-block {
+    background-color: rgba(30, 30, 46, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid #313244;
+}
+.dunst-header { font-weight: bold; color: #a6adc8; font-size: 13px; }
+.clear-all { background-color: #313244; padding: 4px 10px; border-radius: 8px; }
+.clear-all label { font-size: 11px; }
+.b-subtext { color: #a6adc8; font-size: 12px; }
+
+/* Картка сповіщення */
+.notif-item {
+    background-color: #1e1e2e;
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #313244;
+    margin-bottom: 2px;
+}
+.notif-icon { color: #f9e2af; font-size: 16px; }
+.notif-appname { font-size: 11px; color: #a6adc8; font-weight: bold; }
+.notif-summary { font-weight: 800; font-size: 13px; color: #cdd6f4; margin-bottom: 4px; }
+.notif-body { font-size: 12px; color: #bac2de; }
+
+/* Основний контейнер доку */
+.dock-wrapper {
+    margin-bottom: 10px;
+    background-color: rgba(17, 17, 27, 0.85); /* Темний напівпрозорий фон */
+    border: 1px solid #313244;
+    border-radius: 20px;
+    padding: 8px 2px ;
+}
+
+/* Сама кнопка програми (Box) - ПРОЗОРА */
+.dock-item {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin: 0 4px;
+    transition: 0.2s;
+}
+
+.dock-item.active {
+/* border: 2px solid #a6adc8; */
+/* box-shadow:0 0 0 3px #cdd6f4; */
+background-color: #cdd6f4;
+
+}
+
+/* Ефект при наведенні (легке підсвічування) */
+.dock-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Іконка */
+.dock-icon {
+    border-radius: 10px;
+}
+
+/* Системний монітор */
+.sys-monitor {
+    border-left: 1px solid #313244;
+    padding-left: 12px;
+}
+
+.sys-text {
+    font-size: 15px;
+    font-weight: 800;
+    color: #89b4fa; 
+    margin-right: 10px;
+}
+
+
+
+
+
+.switcher-bg {
+    background-color: rgba(0,0,0,0);
+}
+.switcher-container {
+    background-color: #1e1e2e57;
+    border: 2px solid #313244;
+    border-radius: 20px;
+    padding: 30px;
+}
+.switcher-item {
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* Цей клас додається Python-ом до активного елемента */
+.selected {
+    background-color: rgba(137, 180, 250, 0.3); /* Синій фон */
+    border: 2px solid #89b4fa;                  /* Синя рамка */
+}
+
+.switcher-label {
+    color: white; font-size: 12px; font-weight: bold;
+}
+
+
+.preview-image {
+    min-width: 240px;   /* Ширина прев'ю */
+    min-height: 135px;  /* Висота прев'ю (16:9) */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: #313244;
+}
+
+.switcher-item {
+    padding: 10px;
+    border-radius: 12px;
+    background-color: rgba(255,255,255,0.05);
+}
+
+.selected {
+    background-color: rgba(137, 180, 250, 0.2);
+    border: 2px solid #89b4fa;
+}
+
+/* ------------ */
+/* --- ВІКНО --- */
+.wp-window {
+    /* background-color: rgba(0, 0, 0, 0.4); */
+}
+
+.wp-container {
+    background-color: rgba(30, 30, 46, 0.6); 
+    border: 2px solid #89b4fa;
+    border-radius: 24px;
+    padding: 30px;
+    /* box-shadow: 0 0 50px rgba(0, 0, 0, 0.8); */
+}
+
+.wp-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #cba6f7;
+    margin-bottom: 20px;
+}
+
+/* --- КАРТКИ (Custom Buttons) --- */
+.wp-card {
+    min-width: 260px;
+    min-height: 160px;
+    border-radius: 16px;
+    border: 3px solid transparent;
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+    /* box-shadow: 0 5px 15px rgba(0,0,0,0.4); */
+    background-color: #313244; /* Колір, поки картинка вантажиться */
+}
+
+/* Ефект наведення */
+.wp-card:hover {
+    transform: scale(1.05);
+    border-color: #cba6f7;
+    box-shadow: 0 10px 25px rgba(137, 180, 250, 0.3);
+}
+
+/* Активний клік */
+.wp-card:active {
+    transform: scale(0.98);
+}
+
+/* Підпис назви */
+.wp-label-box {
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    width: 100%;
+    padding: 12px;
+    border-bottom-left-radius: 13px;
+    border-bottom-right-radius: 13px;
+}
+
+.wp-label {
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    text-shadow: 0 2px 4px black;
+}
+
+/* --- КНОПКА ЗАКРИТТЯ --- */
+.wp-close-btn {
+    background-color: rgba(243, 139, 168, 0.1);
+    border: 1px solid #f38ba8;
+    border-radius: 12px;
+    padding: 8px 24px;
+    transition: all 0.2s;
+}
+
+.wp-close-label {
+    color: #f38ba8;
+    font-weight: bold;
+}
+
+.wp-close-btn:hover {
+    background-color: #f38ba8;
+}
+
+.wp-close-btn:hover .wp-close-label {
+    color: #1e1e2e;
+}
+
+.active-scan-btn {
+    background-color: #f38ba8; /* Червоний колір для STOP */
+    color: #1e1e2e;
+    border-radius: 5px;
+}
